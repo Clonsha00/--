@@ -3,13 +3,14 @@
 
 :root {
   --bg-color: #0f0f1a;
-  --text-color: #e0e0e0;
-  --primary-neon: #39ff14;
-  /* Neon Green */
-  --secondary-neon: #bc13fe;
-  /* Neon Purple */
-  --accent-neon: #ff073a;
-  /* Neon Red/Pink */
+  --text-color: #00ff41;
+  /* Green */
+  --primary-neon: #00ff41;
+  /* Green Beam */
+  --secondary-neon: #008f11;
+  /* Dark Green */
+  --accent-neon: #003b00;
+  /* Deep Green */
   --card-bg: #1a1a2e;
 
   --pixel-border: 4px;
@@ -232,6 +233,31 @@ body {
   }
 }
 
+/* RETROWAVE THEME */
+body.theme-retrowave {
+  --bg-color: #1a0b2e;
+  /* Deep Purple */
+  --text-color: #ff00ff;
+  /* Magenta */
+  --primary-neon: #ff00ff;
+  /* Purple/Magenta Beam */
+  --secondary-neon: #00f0ff;
+  /* Cyan */
+  --accent-neon: #ffbd00;
+  /* Yellow/Gold */
+  --card-bg: #240046;
+}
+
+body.theme-retrowave .retro-grid {
+  background: linear-gradient(to bottom, #1a0b2e 0%, #240046 100%);
+}
+
+body.theme-retrowave .grid-plane {
+  background-image:
+    linear-gradient(rgba(255, 0, 255, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 255, 0.3) 1px, transparent 1px);
+}
+
 /* CYBERPUNK THEME */
 body.theme-cyberpunk {
   --bg-color: #0b0b0b;
@@ -254,6 +280,20 @@ body.theme-cyberpunk .grid-plane {
   background-image:
     linear-gradient(rgba(252, 238, 10, 0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(252, 238, 10, 0.2) 1px, transparent 1px);
+}
+
+/* Cyberpunk Beam Override: Cyan (Safe Blue) instead of Warning Yellow */
+body.theme-cyberpunk .ufo-orbit::after,
+body.theme-cyberpunk .ufo::before {
+  background: var(--secondary-neon);
+  box-shadow: 0 0 5px var(--secondary-neon);
+}
+
+/* Cyberpunk Pixel Bubble Override: Cyan (Safe Blue) */
+body.theme-cyberpunk .pixel-bubble {
+  border-color: var(--secondary-neon);
+  color: var(--secondary-neon);
+  box-shadow: 0 0 5px var(--secondary-neon);
 }
 
 /* ZEN (MATRIX) THEME */
@@ -360,4 +400,156 @@ body.theme-zen .grid-plane {
   transform: translate(-50%, -50%) rotate(-15deg);
   pointer-events: none;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+/* UFO ORBIT SYSTEM */
+.orbit-system {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 61;
+}
+
+.ufo-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  /* Subtle orbit track */
+}
+
+.orbit-1 {
+  width: 140%;
+  height: 140%;
+  animation: orbit-spin 4s linear infinite;
+}
+
+.orbit-2 {
+  width: 170%;
+  height: 170%;
+  animation: orbit-spin 7s linear infinite reverse;
+}
+
+.orbit-3 {
+  width: 210%;
+  height: 210%;
+  animation: orbit-spin 12s linear infinite;
+}
+
+.ufo {
+  position: absolute;
+  top: -5px;
+  /* Sit on the ring (half height) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 10px;
+  background: #bdbdbd;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Little Dome on top */
+.ufo::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 5px;
+  /* Center horizontally (Body 20px - Dome 10px) / 2 */
+  width: 10px;
+  height: 6px;
+  background: var(--primary-neon);
+  border-radius: 50%;
+  opacity: 1;
+  box-shadow: 0 0 3px var(--primary-neon);
+}
+
+/* Tractor Beam - Attached to Orbit Track for precise targeting */
+/* Tractor Beam - Attached to Orbit Track for precise targeting */
+.ufo-orbit::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  /* Start just below the UFO */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  /* Beam base width */
+
+  /* ADAPTIVE BEAM COLOR */
+  background: var(--primary-neon);
+  /* Fade effect via mask */
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+
+  clip-path: polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%);
+  /* Cone */
+  pointer-events: none;
+  transform-origin: top center;
+  opacity: 0;
+  animation: ufo-scan 5s ease-in-out infinite;
+  z-index: 60;
+}
+
+/* Precise Beam Lengths (% of Orbit Diameter) to touch Planet Surface */
+/* Formula: Height = (OrbitRadius - PlanetRadius) / OrbitDiameter */
+.orbit-1::after {
+  height: 14.3%;
+  animation-delay: 0s;
+  animation-duration: 4s;
+}
+
+.orbit-2::after {
+  height: 20.6%;
+  animation-delay: 2.5s;
+  animation-duration: 6s;
+}
+
+.orbit-3::after {
+  height: 26.2%;
+  animation-delay: 1s;
+  animation-duration: 8s;
+}
+
+@keyframes ufo-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0);
+  }
+
+  5% {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  /* Hold beam longer (2.25s) */
+  45% {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  50% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scaleY(0);
+  }
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }

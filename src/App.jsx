@@ -14,7 +14,7 @@ function App() {
   // Settings System
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('pixel-settings');
-    return saved ? JSON.parse(saved) : { headerText: '> TASKS_LOG', headerSize: 1.5, theme: 'retrowave', bubbleStyle: 'pixel', language: 'zh-TW' };
+    return saved ? JSON.parse(saved) : { headerText: '> TASKS_LOG', headerSize: 1.5, theme: 'zen', bubbleStyle: 'pixel', language: 'zh-TW' };
   });
   const [showSettings, setShowSettings] = useState(false);
 
@@ -34,16 +34,27 @@ function App() {
     localStorage.setItem('pixel-xp', JSON.stringify(xpData));
   }, [xpData]);
 
-  // Random Theme Logic (Calculated once per session mount)
+  // Random Theme Logic (Calculated once per session mount, respects unlocks)
   const [sessionRandomTheme] = useState(() => {
-    const themes = ['retrowave', 'cyberpunk', 'zen'];
-    return themes[Math.floor(Math.random() * themes.length)];
+    const savedXp = localStorage.getItem('pixel-xp');
+    const level = savedXp ? JSON.parse(savedXp).level : 1;
+
+    const pool = ['zen'];
+    if (level >= 10) pool.push('retrowave', 'cyberpunk');
+
+    return pool[Math.floor(Math.random() * pool.length)];
   });
 
-  // Determine Active Theme
+  // Determine Active Theme (Enforce Level Locks)
   const activeTheme = (() => {
-    const t = settings.theme || 'retrowave';
-    return t === 'random' ? sessionRandomTheme : t;
+    let t = settings.theme || 'zen';
+    if (t === 'random') t = sessionRandomTheme;
+
+    // Safety Fallback: If current theme requires higher level, downgrade to Zen
+    if ((t === 'retrowave' || t === 'cyberpunk') && xpData.level < 10) {
+      return 'zen';
+    }
+    return t;
   })();
 
   useEffect(() => {
@@ -51,7 +62,7 @@ function App() {
 
     // Apply Theme & Enforce Limits
     document.body.className = ''; // Clear prev
-    if (activeTheme !== 'retrowave') {
+    if (activeTheme !== 'zen') {
       document.body.classList.add(`theme-${activeTheme}`);
     }
 
@@ -109,6 +120,12 @@ function App() {
   // Layout Logic: Only expand if Focus Mode is active AND a bubble is focused
   const isExpanded = isFocusMode && focusedId;
 
+  const resetProgress = () => {
+    setXpData({ xp: 0, level: 1, totalXp: 0 });
+    localStorage.removeItem('pixel-xp');
+    // window.location.reload(); // Optional: force reload to ensure clean state, but state update should be enough
+  };
+
   return (
     <div className="app-container" style={{ display: 'flex', height: '100vh', width: '100vw', position: 'relative', overflow: 'hidden' }}>
 
@@ -128,6 +145,8 @@ function App() {
             addXp={addXp}
             settings={settings}
             onOpenSettings={() => setShowSettings(true)}
+            highlightId={focusedId}
+            onItemSelect={(id) => setFocusedId(prev => prev === id ? null : id)}
           />
         </div>
       </div>
@@ -156,6 +175,8 @@ function App() {
       {showSettings && (
         <SettingsModal
           settings={settings}
+          level={xpData.level}
+          onResetProgress={resetProgress}
           onSave={(newSettings) => { setSettings(newSettings); setShowSettings(false); }}
           onClose={() => setShowSettings(false)}
         />

@@ -198,7 +198,7 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
     }, [todos]);
 
     const handleBubbleClick = (id) => {
-        if (isFocusMode) setFocusedId(id === focusedId ? null : id);
+        setFocusedId(id === focusedId ? null : id);
     };
 
     const handleTaskComplete = (todo) => {
@@ -296,7 +296,7 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
 
 
 
-            {focusedId && (
+            {isFocusMode && focusedId && (
                 <>
                     <div
                         style={{
@@ -356,7 +356,10 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
                     innerRef={el => bubbleRefs.current[todo.id] = el}
                     onHoverStateChange={h => { const p = physicsState.current.find(x => x.id === todo.id); if (p) p.isHovering = h; }}
                     onHoldStateChange={h => { const p = physicsState.current.find(x => x.id === todo.id); if (p) p.isHolding = h; }}
-                    isFocusMode={isFocusMode} isFocused={focusedId === todo.id} hasFocusedItem={!!focusedId}
+                    isFocusMode={isFocusMode}
+                    isFocused={isFocusMode && focusedId === todo.id}
+                    hasFocusedItem={isFocusMode && !!focusedId}
+                    isHighlighted={!isFocusMode && focusedId === todo.id}
                     onFocusSelect={() => handleBubbleClick(todo.id)}
                 />
             ))}
@@ -365,14 +368,14 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
 
             {todos.length === 0 && (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#555', textAlign: 'center', pointerEvents: 'none' }}>
-                    ALL CLEAR<br /><span style={{ fontSize: '0.6em' }}>RELAX MODE</span>
+                    {t('ALL_CLEAR', settings?.language)}<br /><span style={{ fontSize: '0.6em' }}>{t('RELAX_MODE', settings?.language)}</span>
                 </div>
             )}
         </div>
     );
 }
 
-function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, playCharge, playCancel, innerRef, onHoverStateChange, onHoldStateChange, isFocusMode, isFocused, hasFocusedItem, onFocusSelect }) {
+function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, playCharge, playCancel, innerRef, onHoverStateChange, onHoldStateChange, isFocusMode, isFocused, hasFocusedItem, onFocusSelect, isHighlighted }) {
     const [isHolding, setIsHolding] = useState(false);
     const [isPopping, setIsPopping] = useState(false);
     const timerRef = useRef(null);
@@ -440,6 +443,9 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
         animationClass = isPlanet ? 'imploding' : 'popping';
     } else if (isHolding) {
         animationClass = 'shake';
+    } else if (isHighlighted || isFocused) {
+        // Disable shake when focused/highlighted to allow transform: scale() to work
+        animationClass = urgencyClass.replace('shake', '').trim();
     }
     const mainClass = isPlanet
         ? `planet-base ${planetType} ${animationClass} ${hasRing ? 'planet-ring' : ''}`
@@ -454,16 +460,39 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
     // Default to Retrowave logic if theme not found
     const currentTheme = holdColors[activeTheme] || holdColors['retrowave'];
 
-    const borderColor = isHolding ? currentTheme.border : 'var(--primary-neon)';
-    const bgColor = isHolding ? currentTheme.bg : 'rgba(57, 255, 20, 0.1)';
+    // Cyberpunk Safety Override: Use Secondary Neon (Cyan) for base state
+    const isCyberSafe = activeTheme === 'cyberpunk';
+    const borderColor = isHolding ? currentTheme.border : (isCyberSafe ? 'var(--secondary-neon)' : 'var(--primary-neon)');
+    const bgColor = isHolding ? currentTheme.bg : (isCyberSafe ? 'rgba(5, 217, 232, 0.15)' : 'rgba(57, 255, 20, 0.1)');
 
-    const focusStyle = isFocused
-        ? {
+    let focusStyle = {};
+    if (isFocused) {
+        focusStyle = {
             boxShadow: `0 0 50px ${borderColor}, inset 0 0 20px ${borderColor}`,
             transform: 'scale(1.5)',
             zIndex: 100
+        };
+    } else if (isHighlighted) {
+        if (isPlanet) {
+            // Planet Mode: Zoom + Brackets (No self-glow, Ring handled by CSS)
+            focusStyle = {
+                // No box-shadow on the bubble itself (brackets are separate)
+                boxShadow: 'none',
+                zIndex: 60,
+                transform: 'scale(1.2)'
+            };
+        } else {
+            // Pixel Mode: Zoom + Standard Glow
+            focusStyle = {
+                boxShadow: `0 0 30px ${borderColor}, inset 0 0 10px ${borderColor}`,
+                zIndex: 60,
+                filter: 'brightness(1.5)',
+                transform: 'scale(1.2)' // Re-enabled Zoom
+            };
         }
-        : (hasFocusedItem ? { opacity: 0.1, filter: 'grayscale(100%)', transform: 'scale(0.8)' } : {});
+    } else if (hasFocusedItem) {
+        focusStyle = { opacity: 0.1, filter: 'grayscale(100%)', transform: 'scale(0.8)' };
+    }
 
     const commonStyle = {
         width: '100%', height: '100%', borderRadius: '50%',
@@ -490,9 +519,10 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
 
 
     return (
-        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, width: `${diameter}px`, height: `${diameter}px`, willChange: 'transform', zIndex: isFocused ? 100 : (isHolding ? 50 : 1), transition: 'filter 0.5s, opacity 0.5s' }}>
+        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, width: `${diameter}px`, height: `${diameter}px`, willChange: 'transform', zIndex: isFocused ? 100 : (isHighlighted ? 90 : (isHolding ? 50 : 1)), transition: 'filter 0.5s, opacity 0.5s' }}>
             <div className={mainClass}
                 onMouseDown={startHold} onMouseUp={endHold} onMouseLeave={() => { onHoverStateChange(false); endHold(); }} onMouseEnter={() => onHoverStateChange(true)} onTouchStart={startHold} onTouchEnd={endHold}
+                onClick={(e) => { e.stopPropagation(); if (!isPopping) onFocusSelect(); }}
                 style={isPlanet ? planetStyle : pixelStyle}>
                 <div style={{
                     fontSize: '0.9rem',
@@ -508,6 +538,13 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
                 }}>{todo.title}</div>
                 <div style={{ fontSize: '0.7rem', color: '#ddd', zIndex: 2, pointerEvents: 'none', textShadow: '1px 1px 2px black' }}>{label}</div>
             </div>
+            {isPlanet && isHighlighted && (
+                <div className="orbit-system">
+                    <div className="ufo-orbit orbit-1"><div className="ufo" /></div>
+                    <div className="ufo-orbit orbit-2"><div className="ufo" /></div>
+                    <div className="ufo-orbit orbit-3"><div className="ufo" /></div>
+                </div>
+            )}
         </div>
     );
 }

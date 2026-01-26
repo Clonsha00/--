@@ -23,7 +23,7 @@ const pixelBoxShadow = (color) => `
 
 export const PixelButton = ({ children, onClick, variant = 'primary', style = {} }) => {
   const color = variant === 'primary' ? 'var(--primary-neon)' :
-    variant === 'danger' ? 'var(--accent-neon)' : 'var(--secondary-neon)';
+    variant === 'danger' ? '#ff003c' : 'var(--secondary-neon)';
 
   const buttonStyle = {
     fontFamily: 'var(--font-pixel)',

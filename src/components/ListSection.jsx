@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PixelButton, PixelInput, PixelCard } from './PixelUI';
 import { PixelDatePicker } from './PixelDatePicker';
 import useSoundEffects from '../hooks/useSoundEffects';
 import { t } from '../utils/i18n';
 
-export default function ListSection({ todos, setTodos, addXp, settings, onOpenSettings }) {
+export default function ListSection({ todos, setTodos, addXp, settings, onOpenSettings, highlightId, onItemSelect }) {
+    const itemRefs = useRef({});
+
+    useEffect(() => {
+        if (highlightId && itemRefs.current[highlightId]) {
+            itemRefs.current[highlightId].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightId]);
     const lang = settings?.language || 'en';
     const { playClick, playDelete } = useSoundEffects();
 
@@ -215,7 +222,7 @@ export default function ListSection({ todos, setTodos, addXp, settings, onOpenSe
                                         };
                                     });
                                     setTodos(prev => [...prev, ...newTasks]);
-                                }} style={{ flex: 1, fontSize: '0.7rem' }}>{t('SPAWN_15', lang).replace('15', 'ALL')}</PixelButton>
+                                }} style={{ flex: 1, fontSize: '0.7rem' }}>{t('SPAWN_15', lang)}</PixelButton>
                                 <PixelButton variant="danger" onClick={() => {
                                     playDelete();
                                     setTodos([]);
@@ -233,18 +240,30 @@ export default function ListSection({ todos, setTodos, addXp, settings, onOpenSe
                 padding: '20px'
             }}>
                 {[...todos].sort((a, b) => new Date(a.deadline) - new Date(b.deadline)).map(todo => (
-                    <PixelCard key={todo.id} style={{ padding: '20px', marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h4 style={{ margin: '0 0 8px 0', color: 'var(--secondary-neon)', fontSize: '1.2rem' }}>{todo.title}</h4>
-                                <div style={{ fontSize: '0.85rem', color: '#888', lineHeight: '1.5' }}>
-                                    {t('EXP', lang)}: {new Date(todo.deadline).toLocaleString()}<br />
-                                    {t('TYPE', lang)}: {t(todo.type, lang)} | {t('NOTE', lang)}: {todo.note || todo.duration}
+                    <div key={todo.id} ref={el => itemRefs.current[todo.id] = el}
+                        onClick={() => onItemSelect && onItemSelect(todo.id)}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <PixelCard style={{
+                            padding: '20px',
+                            marginBottom: '20px',
+                            border: highlightId === todo.id ? '2px solid var(--primary-neon)' : undefined,
+                            boxShadow: highlightId === todo.id ? '0 0 15px var(--primary-neon)' : undefined,
+                            background: highlightId === todo.id ? 'rgba(57, 255, 20, 0.05)' : undefined,
+                            transition: 'all 0.3s ease'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ margin: '0 0 8px 0', color: 'var(--secondary-neon)', fontSize: '1.2rem' }}>{todo.title}</h4>
+                                    <div style={{ fontSize: '0.85rem', color: '#888', lineHeight: '1.5' }}>
+                                        {t('EXP', lang)}: {new Date(todo.deadline).toLocaleString()}<br />
+                                        {t('TYPE', lang)}: {t(todo.type, lang)} | {t('NOTE', lang)}: {todo.note || todo.duration}
+                                    </div>
                                 </div>
+                                <PixelButton variant="danger" onClick={() => handleDelete(todo.id)} style={{ padding: '8px' }}>X</PixelButton>
                             </div>
-                            <PixelButton variant="danger" onClick={() => handleDelete(todo.id)} style={{ padding: '8px' }}>X</PixelButton>
-                        </div>
-                    </PixelCard>
+                        </PixelCard>
+                    </div>
                 ))}
                 {todos.length === 0 && <p style={{ textAlign: 'center', color: '#555', marginTop: '20px' }}>{t('NO_DATA', lang)}</p>}
             </div>
