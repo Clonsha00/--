@@ -1,0 +1,363 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+:root {
+  --bg-color: #0f0f1a;
+  --text-color: #e0e0e0;
+  --primary-neon: #39ff14;
+  /* Neon Green */
+  --secondary-neon: #bc13fe;
+  /* Neon Purple */
+  --accent-neon: #ff073a;
+  /* Neon Red/Pink */
+  --card-bg: #1a1a2e;
+
+  --pixel-border: 4px;
+  --font-pixel: "Press Start 2P", "DotGothic16", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-pixel);
+  -webkit-font-smoothing: none;
+  /* Crisper pixels */
+  line-height: 1.5;
+  overflow: hidden;
+  /* Prevent body scroll if we make full app container scrollable */
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-neon);
+  border: 2px solid var(--bg-color);
+}
+
+/* Utility Class for Pixel Border */
+.pixel-border {
+  box-shadow:
+    -4px 0 0 0 white,
+    4px 0 0 0 white,
+    0 -4px 0 0 white,
+    0 4px 0 0 white;
+  margin: 4px;
+}
+
+/* Animations for Bubbles */
+@keyframes shake {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(0.5px, 0.5px) rotate(0.5deg);
+  }
+
+  50% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  75% {
+    transform: translate(-0.5px, 0.5px) rotate(-0.5deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.shake {
+  animation: shake 0.8s infinite;
+}
+
+.popping {
+  animation: pop 0.3s forwards ease-out;
+}
+
+@keyframes implode {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+
+  50% {
+    transform: scale(0.4) rotate(180deg);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.imploding {
+  animation: implode 0.5s forwards ease-in;
+}
+
+@keyframes breathe {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.breathe {
+  animation: breathe 4s infinite ease-in-out;
+}
+
+/* Urgency Colors & Effects */
+.urgency-warning {
+  border-color: #ffdd40 !important;
+  /* Yellow */
+  color: #ffdd40 !important;
+  box-shadow: 0 0 15px #ffdd40 !important;
+  background-color: rgba(255, 221, 64, 0.15) !important;
+}
+
+.urgency-critical {
+  border-color: #ff073a !important;
+  /* Red */
+  color: #ff073a !important;
+  box-shadow: 0 0 25px #ff073a !important;
+  background-color: rgba(255, 7, 58, 0.25) !important;
+}
+
+/* RETROWAVE GRID BACKGROUND */
+.retro-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  perspective: 400px;
+  /* Depth of field */
+  background: linear-gradient(to bottom, #0f0f1a 0%, #1a1a2e 100%);
+  /* Deep space fade */
+}
+
+.grid-plane {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image:
+    linear-gradient(rgba(188, 19, 254, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(188, 19, 254, 0.3) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: rotateX(60deg);
+  /* Tilt floor */
+  transform-origin: 50% 0;
+  /* Rotate from top horizon */
+  animation: grid-move 2s linear infinite;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 40%);
+  /* Fade out at horizon (top) */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%);
+}
+
+@keyframes grid-move {
+  0% {
+    transform: rotateX(60deg) translateY(0);
+  }
+
+  100% {
+    transform: rotateX(60deg) translateY(50px);
+  }
+
+  /* Move one grid cell size */
+}
+
+/* Star Twinkle Animation */
+.star-twinkle {
+  animation: flicker infinite alternate ease-in-out;
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* CYBERPUNK THEME */
+body.theme-cyberpunk {
+  --bg-color: #0b0b0b;
+  /* Darker clean black */
+  --text-color: #fcee0a;
+  /* Cyber Yellow */
+  --primary-neon: #fcee0a;
+  --secondary-neon: #00f0ff;
+  /* Cyan */
+  --accent-neon: #ff003c;
+  /* Red */
+  --card-bg: #1a1a1a;
+}
+
+body.theme-cyberpunk .retro-grid {
+  background: linear-gradient(to bottom, #0b0b0b 0%, #1a1a1a 100%);
+}
+
+body.theme-cyberpunk .grid-plane {
+  background-image:
+    linear-gradient(rgba(252, 238, 10, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(252, 238, 10, 0.2) 1px, transparent 1px);
+}
+
+/* ZEN (MATRIX) THEME */
+body.theme-zen {
+  --bg-color: #000000;
+  --text-color: #00ff41;
+  --primary-neon: #00ff41;
+  --secondary-neon: #008f11;
+  --accent-neon: #003b00;
+  --card-bg: #050505;
+}
+
+body.theme-zen .retro-grid {
+  background: black;
+}
+
+body.theme-zen .grid-plane {
+  background-image:
+    linear-gradient(rgba(0, 255, 65, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 65, 0.15) 1px, transparent 1px);
+}
+
+/* PLANET STYLES */
+.planet-base {
+  overflow: hidden;
+  /* Inner shadow (Dark Side) + Outer Glow (Atmosphere - Default) */
+  box-shadow: inset -12px -12px 25px rgba(0, 0, 0, 0.9), 0 0 10px rgba(255, 255, 255, 0.1) !important;
+  position: relative;
+  border: none !important;
+  /* Noise Texture Overlay */
+  background-blend-mode: overlay;
+}
+
+/* Atmospheric Sheen / Gloss */
+.planet-base::after {
+  content: '';
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  /* Softer, more diffuse upper-left lighting */
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25) 0%, transparent 50%);
+  pointer-events: none;
+  filter: blur(2px);
+}
+
+/* Planet Variants (Textured & Atmospheric) */
+.planet-terran {
+  /* Blue/Green + Noise */
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.3'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 35% 35%, #00c6ff 0%, #0072ff 100%);
+  background-size: 150%;
+  box-shadow: inset -10px -10px 25px rgba(0, 0, 0, 0.85), 0 0 15px rgba(0, 198, 255, 0.5) !important;
+}
+
+.planet-gas {
+  /* Banded + Soft Noise */
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.2'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #eacda3 0%, #d6ae7b 30%, #eacda3 60%, #b88a55 100%);
+  background-size: 100%;
+  box-shadow: inset -10px -10px 25px rgba(0, 0, 0, 0.85), 0 0 15px rgba(234, 205, 163, 0.4) !important;
+}
+
+.planet-ice {
+  /* Crystalline Noise */
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 30% 30%, #a1c4fd 0%, #c2e9fb 100%);
+  background-size: 200%;
+  box-shadow: inset -10px -10px 25px rgba(0, 0, 0, 0.7), 0 0 20px rgba(161, 196, 253, 0.6) !important;
+}
+
+.planet-lava {
+  /* Magma Noise */
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 35% 35%, #ff5e62 0%, #ff9966 20%, #d7263d 100%);
+  background-size: 120%;
+  box-shadow: inset -10px -10px 25px rgba(0, 0, 0, 0.9), 0 0 25px rgba(255, 94, 98, 0.6) !important;
+}
+
+.planet-void {
+  /* Crater Noise */
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.25'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 35% 35%, #485563 0%, #29323c 100%);
+  background-size: 100%;
+  box-shadow: inset -10px -10px 25px rgba(0, 0, 0, 0.95), 0 0 10px rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Planet Rings */
+.planet-ring::before {
+  top: 50%;
+  left: 50%;
+  width: 140%;
+  height: 40%;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
