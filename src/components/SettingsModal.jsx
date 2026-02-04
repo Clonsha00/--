@@ -10,7 +10,8 @@ export default function SettingsModal() {
     const {
         settings, setSettings, setShowSettings,
         musicVolume, setMusicVolume,
-        customFileName, handleMusicUpload, handleResetMusic
+        customFileName, handleMusicUpload, handleResetMusic,
+        isDevMode
     } = useSettings();
     const { xpData, resetProgress } = useTodo();
     const realLevel = xpData.level;
