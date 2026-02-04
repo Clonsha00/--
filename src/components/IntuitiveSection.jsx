@@ -1,11 +1,13 @@
 import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
-import useAmbientMusic from '../hooks/useAmbientMusic';
+
 import useSoundEffects from '../hooks/useSoundEffects';
 import EffectsLayer from './EffectsLayer';
 import StarBackground from './StarBackground';
 import FocusTimer from './FocusTimer';
-
 import { t } from '../utils/i18n';
+import { useTodo } from '../contexts/TodoContext';
+import { useSettings } from '../contexts/SettingsContext';
+import '../styles/IntuitiveSection.css';
 
 // Helper to get random number in range
 const randomRange = (min, max) => Math.random() * (max - min) + min;
@@ -13,32 +15,22 @@ const randomRange = (min, max) => Math.random() * (max - min) + min;
 const SUBSTEPS = 8;
 const FRICTION = 1.0;
 
-export default function IntuitiveSection({ todos, setTodos, addXp, settings, activeTheme, isFocusMode, setIsFocusMode, focusedId, setFocusedId }) {
+export default function IntuitiveSection() {
+    const { todos, setTodos, addXp } = useTodo();
+    const { settings, activeTheme, isFocusMode, focusedId, setFocusedId, musicVolume, setMusicVolume } = useSettings();
+
     const { playCharge, playPop, playCancel } = useSoundEffects();
-    const ambientAudio = useAmbientMusic();
+    // ambientAudio logic moved to SettingsContext
     const containerRef = useRef(null);
     const requestRef = useRef();
     const effectsRef = useRef(null);
 
-    // Track music state for UI
-    const [displayVol, setDisplayVol] = useState(0);
-
-    // User desired volume
-    const userVolume = useRef(0.0);
-
-    const [trailMode, setTrailMode] = useState('neon');
+    const [trailMode] = useState('neon'); // Removed unused setTrailMode if not used, or keep if intended for future
     const comboRef = useRef({ count: 0, lastTime: 0 });
     const physicsState = useRef([]);
     const bubbleRefs = useRef({});
 
     const bubbleStyle = settings?.bubbleStyle || 'pixel';
-
-    // Audio Volume Ducking
-    useEffect(() => {
-        const baseVol = userVolume.current;
-        const targetVol = focusedId ? baseVol * 0.2 : baseVol;
-        ambientAudio.setVolume(targetVol);
-    }, [focusedId]);
 
     // Physics Update Loop
     const animate = () => {
@@ -143,11 +135,10 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
         physicsState.current.forEach(p => {
             if (!todos.find(t => t.id === p.id)) {
                 if (effectsRef.current) {
-                    // Determine theme primary color
                     const themeColors = {
-                        'retrowave': '#39ff14', // Neon Green
-                        'cyberpunk': '#fcee0a', // Cyber Yellow
-                        'zen': '#00ff41'        // Matrix Green
+                        'retrowave': '#39ff14',
+                        'cyberpunk': '#fcee0a',
+                        'zen': '#00ff41'
                     };
                     const themeColor = themeColors[activeTheme] || '#39ff14';
 
@@ -156,22 +147,17 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
 
                     if (p.todo) {
                         const h = (new Date(p.todo.deadline) - new Date()) / 36e5;
-
                         if (isPlanet) {
-                            if (h <= 24) color = '#ff5e62'; // Lava
-                            else if (h <= 72) color = '#eacda3'; // Gas
+                            if (h <= 24) color = '#ff5e62';
+                            else if (h <= 72) color = '#eacda3';
                             else {
-                                // Safe types: Terran, Ice, Void
                                 const safeColors = ['#00c6ff', '#a1c4fd', '#8e9eab'];
                                 color = safeColors[p.todo.id % safeColors.length];
                             }
-                            // Trigger Black Hole
                             effectsRef.current.spawnBlackHole(p.x, p.y, color);
                         } else {
-                            // Pixel Mode Logic
-                            if (h <= 24) color = '#ff073a'; // Critical (Red)
-                            else if (h <= 72) color = '#ffdd40'; // Warning (Yellow)
-                            // Normal Explosion
+                            if (h <= 24) color = '#ff073a';
+                            else if (h <= 72) color = '#ffdd40';
                             effectsRef.current.spawnExplosion(p.x, p.y, color);
                         }
                     } else {
@@ -212,122 +198,60 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
         if (focusedId === todo.id) setFocusedId(null);
     };
 
-    const handleSaveNote = (id, newNote) => {
-        setTodos(prev => prev.map(t =>
-            t.id === id ? { ...t, note: newNote } : t
-        ));
-    };
-
-    const focusedTodo = todos.find(t => t.id === focusedId);
-
     return (
-        <div ref={containerRef} style={{ flex: 1, backgroundColor: '#151525', position: 'relative', overflow: 'hidden', cursor: isFocusMode ? 'default' : 'crosshair', width: '100%', height: '100%' }}>
+        <div ref={containerRef} className="intuitive-container" style={{ cursor: isFocusMode ? 'default' : 'crosshair' }}>
             <StarBackground />
 
-
-            <div style={{ position: 'absolute', top: '20px', right: '25px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#ccc', fontSize: '0.8rem', textShadow: '1px 1px 2px black', userSelect: 'none' }}>
-                <div style={{
-                    color: displayVol > 0 ? 'var(--primary-neon)' : '#ccc',
-                    textShadow: displayVol > 0 ? '0 0 5px var(--primary-neon)' : '1px 1px 2px black',
-                    minWidth: '80px',
-                    textAlign: 'right',
-                    transition: 'all 0.3s ease'
+            {/* Music Controls - Quick Access */}
+            <div className="music-controls">
+                <div className="music-label" style={{
+                    color: musicVolume > 0 ? 'var(--primary-neon)' : '#ccc',
+                    textShadow: musicVolume > 0 ? '0 0 5px var(--primary-neon)' : '1px 1px 2px black'
                 }}>
-                    [{t('MUSIC', settings?.language)} {displayVol > 0 ? `${displayVol}%` : t('OFF', settings?.language)}]
+                    [{t('MUSIC', settings?.language)} {musicVolume > 0 ? `${musicVolume}%` : t('OFF', settings?.language)}]
                 </div>
-                <input type="range" min="0" max="100"
-                    value={displayVol}
+                <input type="range" min="0" max="100" step="10"
+                    value={musicVolume} // Use global state
                     onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
-                        const vol = val / 100;
-                        setDisplayVol(val);
-                        userVolume.current = vol;
-
-                        // Initialize audio context if needed
-                        if (val > 0) {
-                            ambientAudio.initAudio();
-                            // Only toggle (resume) if it's currently suspended/paused
-                            if (!ambientAudio.isPlaying.current) {
-                                ambientAudio.toggle();
-                            }
-                        }
-
-                        ambientAudio.setVolume(focusedId ? vol * 0.2 : vol);
+                        setMusicVolume(val); // This now auto-initializes audio
                     }}
-                    style={{ width: '80px', height: '4px', appearance: 'none', background: '#333', outline: 'none', opacity: 0.7, cursor: 'pointer' }}
+                    className="volume-slider"
+                    style={{
+                        background: `linear-gradient(to right, var(--primary-neon) ${musicVolume}%, #333 ${musicVolume}%)`
+                    }}
                 />
             </div>
 
             {!isFocusMode && (
-                <div style={{ position: 'absolute', top: '50px', right: '25px', zIndex: 50, fontSize: '0.8rem', color: '#ccc', textShadow: '1px 1px 2px black' }}>
+                <div className="focus-status-off">
                     {t('FOCUS_STATUS_OFF', settings?.language)}
                 </div>
             )}
 
-
-
             {isFocusMode && (
-                <div style={{
-                    position: 'absolute',
+                <div className="focus-active-container" style={{
                     top: focusedId ? '60px' : '50px',
                     right: focusedId ? '20px' : '25px',
-                    zIndex: 200,
-                    textAlign: 'right',
-                    pointerEvents: 'none',
-                    transition: 'all 0.3s ease'
                 }}>
-                    <div style={{
-                        color: 'var(--primary-neon)',
-                        fontSize: '0.8rem',
-                        textShadow: '0 0 5px var(--primary-neon)', // Add glow for green
-                        marginBottom: '5px',
-                        transition: 'all 0.3s ease'
-                    }}>
+                    <div className="focus-active-text">
                         {t('FOCUS_STATUS_ACTIVE', settings?.language)}
                     </div>
                     {/* Focus Timer */}
                     {focusedId && (
-                        <div style={{ pointerEvents: 'auto', marginTop: '10px' }}>
+                        <div className="focus-timer-wrapper">
                             <FocusTimer lang={settings?.language || 'en'} />
                         </div>
                     )}
                 </div>
             )}
 
-
-
             {isFocusMode && focusedId && (
                 <>
-                    <div
-                        style={{
-                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            backgroundColor: 'rgba(0,0,0,0.85)',
-                            backdropFilter: 'blur(3px)',
-                            zIndex: 90,
-                            transition: 'all 0.5s ease',
-                            pointerEvents: 'auto',
-                            cursor: 'default' // Changed from zoom-out
-                        }}
-                    />
+                    <div className="focus-overlay-backdrop" />
                     <button
                         onClick={() => { playCancel(); setFocusedId(null); }}
-                        style={{
-                            position: 'absolute',
-                            bottom: '10%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 201, // Above backdrop and bubbles
-                            background: 'rgba(0, 0, 0, 0.8)',
-                            border: '2px solid var(--primary-neon)',
-                            color: 'var(--primary-neon)',
-                            padding: '15px 40px',
-                            fontFamily: 'var(--font-pixel)',
-                            fontSize: '1.2rem',
-                            cursor: 'pointer',
-                            textShadow: '0 0 10px var(--primary-neon)',
-                            boxShadow: '0 0 20px rgba(0,0,0,0.5)',
-                            pointerEvents: 'auto'
-                        }}
+                        className="return-btn"
                         onMouseEnter={(e) => {
                             e.target.style.background = 'var(--primary-neon)';
                             e.target.style.color = '#000';
@@ -367,7 +291,7 @@ export default function IntuitiveSection({ todos, setTodos, addXp, settings, act
             <EffectsLayer ref={effectsRef} />
 
             {todos.length === 0 && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#555', textAlign: 'center', pointerEvents: 'none' }}>
+                <div className="empty-state">
                     {t('ALL_CLEAR', settings?.language)}<br /><span style={{ fontSize: '0.6em' }}>{t('RELAX_MODE', settings?.language)}</span>
                 </div>
             )}
@@ -389,13 +313,10 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
         return `${Math.ceil(h / 24)}d left`;
     })();
 
-    // Planet Props (Urgency Logic)
     const planetType = (() => {
         const h = (new Date(todo.deadline) - new Date()) / 36e5;
-        if (h <= 24) return 'planet-lava'; // Critical -> Lava/Magma
-        if (h <= 72) return 'planet-gas';  // Warning -> Gas Giant (Orange/Brown)
-
-        // Normal -> Random safe planet
+        if (h <= 24) return 'planet-lava';
+        if (h <= 72) return 'planet-gas';
         const safeTypes = ['planet-terran', 'planet-ice', 'planet-void'];
         return safeTypes[todo.id % safeTypes.length];
     })();
@@ -424,7 +345,7 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
                 audioRef.current.osc.stop(now + 0.1);
             } catch (e) { }
             audioRef.current = null;
-            if (isHolding) playCancel(); // Only play cancel if we were actually holding
+            if (isHolding) playCancel();
         }
         setIsHolding(false); onHoldStateChange(false);
     };
@@ -436,7 +357,6 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
         return '';
     })();
 
-    // Animation Selection
     const isPlanet = bubbleStyle === 'planet';
     let animationClass = urgencyClass;
     if (isPopping) {
@@ -444,23 +364,19 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
     } else if (isHolding) {
         animationClass = 'shake';
     } else if (isHighlighted || isFocused) {
-        // Disable shake when focused/highlighted to allow transform: scale() to work
         animationClass = urgencyClass.replace('shake', '').trim();
     }
     const mainClass = isPlanet
         ? `planet-base ${planetType} ${animationClass} ${hasRing ? 'planet-ring' : ''}`
         : `pixel-border ${animationClass}`;
 
-    // Theme Colors for Holding State (Charging)
+    // Dynamic Theme Colors
     const holdColors = {
-        'retrowave': { border: '#ff073a', bg: 'rgba(255, 7, 58, 0.3)' }, // Red charging
-        'cyberpunk': { border: '#fcee0a', bg: 'rgba(252, 238, 10, 0.3)' }, // Yellow charging
-        'zen': { border: '#00ff41', bg: 'rgba(0, 255, 65, 0.3)' }       // Green charging
+        'retrowave': { border: '#ff073a', bg: 'rgba(255, 7, 58, 0.3)' },
+        'cyberpunk': { border: '#fcee0a', bg: 'rgba(252, 238, 10, 0.3)' },
+        'zen': { border: '#00ff41', bg: 'rgba(0, 255, 65, 0.3)' }
     };
-    // Default to Retrowave logic if theme not found
     const currentTheme = holdColors[activeTheme] || holdColors['retrowave'];
-
-    // Cyberpunk Safety Override: Use Secondary Neon (Cyan) for base state
     const isCyberSafe = activeTheme === 'cyberpunk';
     const borderColor = isHolding ? currentTheme.border : (isCyberSafe ? 'var(--secondary-neon)' : 'var(--primary-neon)');
     const bgColor = isHolding ? currentTheme.bg : (isCyberSafe ? 'rgba(5, 217, 232, 0.15)' : 'rgba(57, 255, 20, 0.1)');
@@ -474,20 +390,17 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
         };
     } else if (isHighlighted) {
         if (isPlanet) {
-            // Planet Mode: Zoom + Brackets (No self-glow, Ring handled by CSS)
             focusStyle = {
-                // No box-shadow on the bubble itself (brackets are separate)
                 boxShadow: 'none',
                 zIndex: 60,
                 transform: 'scale(1.2)'
             };
         } else {
-            // Pixel Mode: Zoom + Standard Glow
             focusStyle = {
                 boxShadow: `0 0 30px ${borderColor}, inset 0 0 10px ${borderColor}`,
                 zIndex: 60,
                 filter: 'brightness(1.5)',
-                transform: 'scale(1.2)' // Re-enabled Zoom
+                transform: 'scale(1.2)'
             };
         }
     } else if (hasFocusedItem) {
@@ -495,11 +408,7 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
     }
 
     const commonStyle = {
-        width: '100%', height: '100%', borderRadius: '50%',
-        color: 'white', display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', alignItems: 'center', textAlign: 'center',
-        transition: 'all 0.5s ease',
-        userSelect: 'none', cursor: isFocusMode ? 'crosshair' : 'pointer',
+        // Dynamic styles remain inline or mixed
         ...focusStyle
     };
 
@@ -513,30 +422,29 @@ function Bubble({ todo, bubbleStyle, activeTheme, getUrgencySize, onComplete, pl
     const planetStyle = {
         ...commonStyle,
         border: 'none',
-        boxShadow: isFocused ? `0 0 60px ${borderColor}` : `0 0 20px rgba(255,255,255,0.2)`
+        boxShadow: isFocused ? `0 0 60px ${borderColor}` : `0 0 20px rgba(255,255,255,0.2)`,
+        // Layout fixes to ensure circular shape
+        width: '100%',
+        height: '100%',
+        borderRadius: '50%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minWidth: 0,
+        overflow: 'hidden'
     };
 
-
-
     return (
-        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, width: `${diameter}px`, height: `${diameter}px`, willChange: 'transform', zIndex: isFocused ? 100 : (isHighlighted ? 90 : (isHolding ? 50 : 1)), transition: 'filter 0.5s, opacity 0.5s' }}>
+        <div ref={innerRef} className="bubble-container" style={{ width: `${diameter}px`, height: `${diameter}px`, zIndex: isFocused ? 100 : (isHighlighted ? 90 : (isHolding ? 50 : 1)) }}>
             <div className={mainClass}
                 onMouseDown={startHold} onMouseUp={endHold} onMouseLeave={() => { onHoverStateChange(false); endHold(); }} onMouseEnter={() => onHoverStateChange(true)} onTouchStart={startHold} onTouchEnd={endHold}
                 onClick={(e) => { e.stopPropagation(); if (!isPopping) onFocusSelect(); }}
-                style={isPlanet ? planetStyle : pixelStyle}>
-                <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    textShadow: isPlanet ? '0 0 3px #000, 0 0 6px #000, 0 0 8px #000' : '2px 2px black',
-                    padding: '0 5px',
-                    width: '100%',
-                    maxWidth: '85%',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    zIndex: 2, pointerEvents: 'none'
-                }}>{todo.title}</div>
-                <div style={{ fontSize: '0.7rem', color: '#ddd', zIndex: 2, pointerEvents: 'none', textShadow: '1px 1px 2px black' }}>{label}</div>
+                style={isPlanet ? planetStyle : { ...pixelStyle, width: '100%', height: '100%', borderRadius: '50%', color: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', transition: 'all 0.5s ease', userSelect: 'none', cursor: isFocusMode ? 'crosshair' : 'pointer', minWidth: 0, overflow: 'hidden' }}
+            /* Note: Keeping some inline styles for Pixel Style because they merge dynamic vars 'borderColor' and 'bgColor' */
+            >
+                <div className="bubble-title" style={{ textShadow: isPlanet ? '0 0 3px #000, 0 0 6px #000, 0 0 8px #000' : '2px 2px black', maxWidth: '90%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{todo.title}</div>
+                <div className="bubble-label">{label}</div>
             </div>
             {isPlanet && isHighlighted && (
                 <div className="orbit-system">

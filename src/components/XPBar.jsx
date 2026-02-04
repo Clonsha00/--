@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function XPBar({ xp, level, nextLevelXp }) {
+    const { isDevMode } = useSettings();
     const [displayXp, setDisplayXp] = useState(xp);
     const [isLevelingUp, setIsLevelingUp] = useState(false);
 
@@ -74,7 +76,7 @@ export default function XPBar({ xp, level, nextLevelXp }) {
                 textShadow: '2px 2px #000',
                 transition: 'color 0.5s'
             }}>
-                LV.{level}
+                LV.{isDevMode ? 99 : level}
             </div>
         </div>
     );

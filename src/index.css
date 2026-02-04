@@ -325,6 +325,7 @@ body.theme-zen .grid-plane {
   border: none !important;
   /* Noise Texture Overlay */
   background-blend-mode: overlay;
+  border-radius: 50%;
 }
 
 /* Atmospheric Sheen / Gloss */

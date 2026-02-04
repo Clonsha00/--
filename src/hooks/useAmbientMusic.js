@@ -74,8 +74,69 @@ export default function useAmbientMusic() {
         }, (attack + sustain + release + 2) * 1000);
     }, []);
 
+    const customBufferRef = useRef(null);
+    const customSourceRef = useRef(null);
+
+    const stopCustomPlayback = () => {
+        if (customSourceRef.current) {
+            try { customSourceRef.current.stop(); } catch (e) { }
+            customSourceRef.current.disconnect();
+            customSourceRef.current = null;
+        }
+    };
+
+    const playCustomLoop = () => {
+        const ctx = ctxRef.current;
+        if (!ctx || !customBufferRef.current || !isPlayingRef.current) return;
+
+        stopCustomPlayback();
+
+        const source = ctx.createBufferSource();
+        source.buffer = customBufferRef.current;
+        source.loop = true;
+
+        // Connect to master gain (volume control)
+        // Note: We bypass the "noteBus" delay effects for custom tracks usually, 
+        // but if we want ducking/master volume, we connect to musicMaster.
+        if (masterGainRef.current) {
+            source.connect(masterGainRef.current);
+        } else {
+            source.connect(ctx.destination);
+        }
+
+        source.start();
+        customSourceRef.current = source;
+    };
+
+    const setCustomBuffer = (buffer) => {
+        // Stop whatever is playing
+        stopCustomPlayback();
+        if (intervalRef.current) clearInterval(intervalRef.current);
+
+        customBufferRef.current = buffer;
+
+        if (buffer) {
+            // New track loaded
+            if (isPlayingRef.current) {
+                playCustomLoop();
+            }
+        } else {
+            // Track removed, revert to generative if playing
+            if (isPlayingRef.current) {
+                startGenerativeLoop();
+            }
+        }
+    };
+
     const startGenerativeLoop = useCallback(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
+
+        // If we have a custom buffer, play that instead of generating notes
+        if (customBufferRef.current) {
+            playCustomLoop();
+            return;
+        }
+
         playNote(); // Start one immediately
 
         intervalRef.current = setInterval(() => {
@@ -95,54 +156,59 @@ export default function useAmbientMusic() {
 
         // Prevent double wiring if already initialized
         if (ctx.noteBus) {
-            // Already setup, just reconnect references
-            // We can assume masterGainRef needs to be re-acquired or stored if we want to change volume
-            // But for now, we just proceed. Ideally we store these on the ctx too or checks.
-            // Actually, if it's already there, we might not have reference to the specific gain node to control specific ambient volume.
-            // So we should probably check if WE created it.
-            // For simplicity/robustness: if ctx.noteBus exists, we assume it's running.
+            // Already setup. 
         }
 
-        // 1. Final Master Gain (Local to this hook? No, we share context)
-        // PROBLEM: If we share context, we need our own volume control for music vs SFX.
-        // Solution: Create a specific 'musicMaster' gain node.
-
+        // 1. Final Master Gain
         let musicMaster = ctx.musicMaster;
         if (!musicMaster) {
             musicMaster = ctx.createGain();
             musicMaster.gain.value = volumeRef.current;
             musicMaster.connect(ctx.destination);
-            ctx.musicMaster = musicMaster; // Attach to context to survive re-renders
+            ctx.musicMaster = musicMaster;
         }
         masterGainRef.current = musicMaster;
 
-        // 2. Note Bus (Where notes go)
+        // 2. Note Bus
         let noteBus = ctx.noteBus;
         if (!noteBus) {
             noteBus = ctx.createGain();
             ctx.noteBus = noteBus;
 
-            // 3. Delay/Reverb Chain (Space)
-            const delay = ctx.createDelay();
-            delay.delayTime.value = 3.0; // Very long, spacey delay
-            const feedback = ctx.createGain();
-            feedback.gain.value = 0.3; // Low feedback to avoid mud
-            const wetGain = ctx.createGain();
-            wetGain.gain.value = 0.3; // Mix level
+            // 3. Filter Chain (Soften the tone)
+            const lowpass = ctx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 800;
+            lowpass.Q.value = 0.5;
 
-            // Routing: Bus -> Delay -> Feedback -> Delay -> WetGain -> Master
-            noteBus.connect(delay);
+            noteBus.connect(lowpass);
+
+            // 4. Delay/Reverb Chain
+            const delay = ctx.createDelay();
+            delay.delayTime.value = 3.0;
+            const feedback = ctx.createGain();
+            feedback.gain.value = 0.3;
+            const wetGain = ctx.createGain();
+            wetGain.gain.value = 0.4;
+
+            // Routing
+            lowpass.connect(delay);
             delay.connect(feedback);
             feedback.connect(delay);
             delay.connect(wetGain);
             wetGain.connect(musicMaster);
 
-            // Also route Dry signal: Bus -> Master
-            noteBus.connect(musicMaster);
+            lowpass.connect(musicMaster);
         }
 
         isPlayingRef.current = true;
-        startGenerativeLoop();
+
+        // If we have custom buffer, play that
+        if (customBufferRef.current) {
+            playCustomLoop();
+        } else {
+            startGenerativeLoop();
+        }
     }, [startGenerativeLoop]);
 
     const setVolume = (level) => {
@@ -151,6 +217,8 @@ export default function useAmbientMusic() {
             masterGainRef.current.gain.setTargetAtTime(level, ctxRef.current.currentTime, 0.2);
         }
     };
+
+
 
     const toggle = () => {
         if (!ctxRef.current) {
@@ -162,6 +230,7 @@ export default function useAmbientMusic() {
         if (ctxRef.current.state === 'running') {
             ctxRef.current.suspend();
             isPlayingRef.current = false;
+            stopCustomPlayback(); // Ensure custom playback stops
             return false;
         } else {
             ctxRef.current.resume();
@@ -172,5 +241,5 @@ export default function useAmbientMusic() {
         }
     };
 
-    return { initAudio, toggle, setVolume, isPlaying: isPlayingRef, volumeRef };
+    return { initAudio, toggle, setVolume, isPlaying: isPlayingRef, volumeRef, ctxRef, setCustomBuffer };
 }

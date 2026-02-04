@@ -34,6 +34,7 @@ export const DICTIONARY = {
 
         // IntuitiveSection
         'MUSIC': 'MUSIC',
+        'MUSIC_VOLUME': 'MUSIC VOLUME',
         'OFF': 'OFF',
         'FOCUS_MODE': 'FOCUS MODE',
         'ACTIVE': 'ACTIVE',
@@ -84,7 +85,8 @@ export const DICTIONARY = {
         'STYLE_PLANET': '行星體系',
 
         // IntuitiveSection
-        'MUSIC': '音效',
+        'MUSIC': '音樂',
+        'MUSIC_VOLUME': '音樂音量',
         'OFF': '關閉',
         'FOCUS_MODE': '專注模式',
         'ACTIVE': '已啟動',
